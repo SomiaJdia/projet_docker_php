@@ -1,0 +1,38 @@
+name: Test Docker Build & Compose
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build_and_compose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Docker info
+        run: docker info
+
+      - name: Build Docker image (Dockerfile à la racine)
+        run: docker build -t testimage:ci .
+
+      - name: Validate docker-compose.yml
+        run: docker compose -f docker-compose.yml config -q
+
+      - name: Pull images for compose
+        run: docker compose -f docker-compose.yml pull
+
+      - name: Start stack
+        run: docker compose -f docker-compose.yml up -d
+
+      - name: List containers
+        run: docker ps
+
+      - name: Basic HTTP check (php_app)
+        run: docker exec php_app curl -s http://localhost | head -n 5
+
+      - name: Stop stack
+        if: always()
+        run: docker compose -f docker-compose.yml down
